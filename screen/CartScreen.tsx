@@ -9,6 +9,7 @@ import {
   increaseQuantity,
   decreaseQuantity,
   removeFromCart,
+  clearCart,
   applyDiscount,
   setShippingCost,
   selectCartSummary
@@ -23,7 +24,7 @@ export default function CartScreen() {
   const summary = useSelector(selectCartSummary);
 
   useEffect(() => {
-    const initializeApp = async () => {
+    const initData = async () => {
       const savedCart = await AsyncStorage.getItem('cartItems');
       if (savedCart) {
         dispatch(loadCart(JSON.parse(savedCart)));
@@ -32,14 +33,14 @@ export default function CartScreen() {
         dispatch(fetchProducts() as any);
       }
     };
-    initializeApp();
+    initData();
   }, [dispatch, productsStatus]);
 
   if (productsStatus === 'loading') {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Đang tải sản phẩm...</Text>
+        <Text style={{ marginTop: 10 }}>Đang tải...</Text>
       </View>
     );
   }
@@ -47,7 +48,7 @@ export default function CartScreen() {
   if (productsStatus === 'failed') {
     return (
       <View style={styles.center}>
-        <Text>Lỗi tải dữ liệu sản phẩm!</Text>
+        <Text>Lỗi tải dữ liệu</Text>
       </View>
     );
   }
@@ -59,8 +60,10 @@ export default function CartScreen() {
       <Text style={styles.subtitle}>Sản Phẩm Có Sẵn</Text>
       {products.slice(0, 5).map(product => (
         <View key={product.id} style={styles.productCard}>
-          <Text>{product.name.substring(0, 30)}...</Text>
-          <Text>${product.price.toFixed(2)}</Text>
+          <View style={{ flex: 1, paddingRight: 10 }}>
+            <Text numberOfLines={1} style={{ fontWeight: 'bold' }}>{product.name}</Text>
+            <Text>${product.price.toFixed(2)}</Text>
+          </View>
           <Button title="Thêm Vào Giỏ" onPress={() => dispatch(addToCart(product))} />
         </View>
       ))}
@@ -71,13 +74,17 @@ export default function CartScreen() {
       ) : (
         cartItems.map(item => (
           <View key={item.id} style={styles.cartItem}>
-            <Text style={{ flex: 1 }}>{item.name.substring(0, 15)}...</Text>
+            <Text style={{ flex: 1 }} numberOfLines={1}>{item.name}</Text>
+            
             <View style={styles.quantityControl}>
               <Button title="-" onPress={() => dispatch(decreaseQuantity(item.id))} />
               <Text style={styles.quantityText}>{item.quantity}</Text>
               <Button title="+" onPress={() => dispatch(increaseQuantity(item.id))} />
             </View>
-            <Text style={{ width: 60, textAlign: 'right' }}>${(item.price * item.quantity).toFixed(2)}</Text>
+
+            <Text style={{ width: 65, textAlign: 'right' }}>
+              ${(item.price * item.quantity).toFixed(2)}
+            </Text>
             <Button title="Xóa" color="red" onPress={() => dispatch(removeFromCart(item.id))} />
           </View>
         ))
@@ -98,15 +105,31 @@ export default function CartScreen() {
 
       <View style={styles.summaryBox}>
         <Text style={styles.subtitle}>Tóm Tắt Đơn Hàng</Text>
-        <View style={styles.summaryRow}><Text>Tổng cộng:</Text><Text>${summary.subtotal.toFixed(2)}</Text></View>
+        <View style={styles.summaryRow}>
+          <Text>Tổng cộng:</Text>
+          <Text>${summary.subtotal.toFixed(2)}</Text>
+        </View>
         {summary.discount > 0 && (
-          <View style={styles.summaryRow}><Text style={{ color: 'green' }}>Giảm giá:</Text><Text style={{ color: 'green' }}>-${summary.discount.toFixed(2)}</Text></View>
+          <View style={styles.summaryRow}>
+            <Text style={{ color: 'green' }}>Giảm giá:</Text>
+            <Text style={{ color: 'green' }}>-${summary.discount.toFixed(2)}</Text>
+          </View>
         )}
-        <View style={styles.summaryRow}><Text>Thuế (10%):</Text><Text>${summary.tax.toFixed(2)}</Text></View>
-        <View style={styles.summaryRow}><Text>Vận chuyển:</Text><Text>${summary.shipping.toFixed(2)}</Text></View>
+        <View style={styles.summaryRow}>
+          <Text>Thuế (10%):</Text>
+          <Text>${summary.tax.toFixed(2)}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text>Vận chuyển:</Text>
+          <Text>${summary.shipping.toFixed(2)}</Text>
+        </View>
         <View style={[styles.summaryRow, { borderTopWidth: 1, paddingTop: 10, marginTop: 10 }]}>
           <Text style={{ fontWeight: 'bold', fontSize: 18 }}>Thành Tiền:</Text>
-          <Text style={{ fontWeight: 'bold', fontSize: 18 }}>${summary.total.toFixed(2)}</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, color: 'red' }}>${summary.total.toFixed(2)}</Text>
+        </View>
+        
+        <View style={{ marginTop: 20, marginBottom: 30 }}>
+          <Button title="Thanh Toán" onPress={() => alert('Đã thanh toán!')} />
         </View>
       </View>
     </ScrollView>
@@ -118,11 +141,11 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
   subtitle: { fontSize: 18, fontWeight: 'bold', marginVertical: 15 },
-  productCard: { padding: 10, borderWidth: 1, borderColor: '#ddd', marginBottom: 10, borderRadius: 5 },
-  cartItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderColor: '#ccc' },
+  productCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 10, borderWidth: 1, borderColor: '#ddd', marginBottom: 10, borderRadius: 8 },
+  cartItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderColor: '#eee' },
   quantityControl: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 10 },
   quantityText: { fontSize: 16, fontWeight: 'bold' },
-  row: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 15 },
-  summaryBox: { marginTop: 20, padding: 15, backgroundColor: '#f5f5f5', borderRadius: 10, marginBottom: 50 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, gap: 10 },
+  summaryBox: { marginTop: 20, padding: 15, backgroundColor: '#f9f9f9', borderRadius: 10, borderWidth: 1, borderColor: '#eee' },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 5 }
 });
